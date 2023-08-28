@@ -4,10 +4,13 @@
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 # Author: Yann-Michel Niquet (ymniquet@gmail.com).
-# Version: 2023.03
+# Version: 2023.09
 
 from pylab import *
-from fdint import * # Fermi integrals package fdint.
+try:
+  from fdint import * # Fermi integrals package fdint.
+except:
+  raise RuntimeError("Please install the fdint package with 'pip install --user fdint'.")
 from constants import me, mp, hbar, kb
 
 """Plot fermion gas pressure versus density & temperature."""
@@ -46,24 +49,24 @@ def pressure(T, n):
   return P
   
 def plot_PT(ax, n, Ts, c = "b"):
-  """Plot pressure in axes ax as a function of temperatures Ts for a given density n, with color c."""
+  """Plot pressure in axes ax as a function of temperatures Ts (K) for a given density n (m^{-3}), with color c."""
   l = 1e10*n**(-1./3) # Average inter-particle distance (A).
   Ps = array([pressure(T, n) for T in Ts])
   ax.loglog(Ts, Ps, "-", color = c, lw = 2.5, label = f"$\Lambda={l:.4G}$\,\AA")
+  ax.plot(Ts, n*kb*Ts, ":", color = c) # Classical, non-degenerate limit.  
   Tdeg = (2*pi*hbar**2/(m*kb))*(n/nd)**(2./3) # Degeneracy temperature.
   ax.axvline(Tdeg, linestyle = "-.", color = c) 
-  ax.plot(Ts, n*kb*Ts, ":", color = c) # Classical, non-degenerate limit.
   Pdeg = (hbar**2/(5*m))*(6*pi**2/nd)**(2./3)*n**(5./3) # Degenerate pressure.
   ax.axhline(Pdeg, linestyle = "--", color = c) 
   
 def plot_Pn(ax, T, ns, c = "b"):
-  """Plot pressure in axes ax as a function of densities ns for a given temperature T, with color c."""
+  """Plot pressure in axes ax as a function of densities ns (m^{-3}) for a given temperature T (K), with color c."""
   ls = 1e10*ns**(-1./3) # Average inter-particle distance (A).
   Ps = array([pressure(T, n) for n in ns])
   ax.loglog(ls, Ps, "-", color = c, lw = 2.5, label = f"$T=10^{log10(T):.0f}$\,K")
+  ax.plot(ls, ns*kb*T, ":", color = c) # Classical, non-degenerate limit.  
   ndeg = nd*(m*kb*T/(2*pi*hbar**2))**1.5 # Degeneracy density.
   ax.axvline(1e10*ndeg**(-1./3), linestyle = "-.", color = c) 
-  ax.plot(ls, ns*kb*T, ":", color = c) # Classical, non-degenerate limit.
 
 ### Plots.
 
@@ -73,8 +76,8 @@ cs = ["b", "m", "r", "g"] # Plot colors.
 
 Ts = 10**linspace(2, 10, 256) # Temperatures (K).
 
-ls = array([.1, 1, 10, 100]) # Average inter-particle distance (A).
-ns = 1/(ls*1e-10)**3
+ls = array([.1, 1, 10, 100]) # Average inter-particle distances (A).
+ns = 1/(ls*1e-10)**3 # Densities (m^{-3}).
 
 figure(layout = "constrained")
 ax = axes()
@@ -92,8 +95,8 @@ savefig("P_T.pdf")
 
 Ts = [1e2, 1e4, 1e6, 1e8] # Temperatures (K).
 
-ls = 10**linspace(-1, 2, 256) # Average inter-particle distance (A).
-ns = 1/(ls*1e-10)**3
+ls = 10**linspace(-1, 2, 256) # Average inter-particle distances (A).
+ns = 1/(ls*1e-10)**3 # Densities (m^{-3}).
 
 figure(layout = "constrained")
 axl = axes()

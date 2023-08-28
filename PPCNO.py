@@ -4,11 +4,11 @@
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 # Author: Yann-Michel Niquet (ymniquet@gmail.com).
-# Version: 2023.03
+# Version: 2023.09
 
 from pylab import *
 
-"""Plot nuclear reaction rates."""
+"""Plot nuclear fusion reaction rates."""
 
 ###############
 # Parameters. #
@@ -20,7 +20,7 @@ rho = 150.e3 # Density (kg/m^3).
 
 ###################
 
-# Full models.
+### Full models.
 
 def epsilon_PP(rho, T):
   """Returns the power per unit of mass epsilon (W/kg) for the proton-proton chain.
@@ -46,7 +46,7 @@ def epsilon_CNO(rho, T):
   CCNO = 1.+0.0027*T6**one3-0.00778*T6**two3-0.000149*T6
   return 1.e-4*8.67e27*rho3*X*XCNO*CCNO*T6**(-two3)*np.exp(-152.28*T6**(-one3))
 
-# Polynomial approximations.
+### Polynomial approximations.
 
 def epsilon_PP_poly(rho, T):
   """Returns the power per unit of mass epsilon (W/kg) for the proton-proton chain.

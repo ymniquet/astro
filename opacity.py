@@ -4,14 +4,16 @@
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 # Author: Yann-Michel Niquet (ymniquet@gmail.com).
-# Version: 2023.03
+# Version: 2023.09
 
 from pylab import *
-import etoile as star
+import star as star
 
-"""Plot opacity for different models."""
+"""Plot star opacity for different models."""
 
-# Parameters.
+###############
+# Parameters. #
+###############
 
 X = 0.7346 # Hydrogen mass fraction.
 Z = 0.0169 # Metallicity.
@@ -21,13 +23,16 @@ rhos = [1.e-4, 1.e-2, 1.e0, 1.e2, 1.e4] # Mass densities (kg/m^3).
 labels = ["$10^{-4}$", "$10^{-2}$", "$10^{0}$", "$10^{2}$", "$10^{4}$"] # Label of each mass density. 
 colors = ["cyan", "blue", "magenta", "orange", "red"] # Color of each mass density.
 
-# Plot opacity for a given model.
+###################
+
+### Functions.
 
 def plot(model, linestyle = "-", add_labels = True):
+  """Plot opacity for a given model."""
   for rho, color, label in zip(rhos, colors, labels):
     loglog(Ts, model.kappa(rho, Ts), linestyle = linestyle, color = color, label = label if add_labels else None)
   
-# Main.
+### Plots.
 
 figure(1)
   

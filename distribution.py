@@ -4,10 +4,13 @@
 # This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 # Author: Yann-Michel Niquet (ymniquet@gmail.com).
-# Version: 2023.03
+# Version: 2023.09
 
 from pylab import *
-from fdint import * # Fermi integrals package fdint.
+try:
+  from fdint import * # Fermi integrals package fdint.
+except:
+  raise RuntimeError("Please install the fdint package with 'pip install --user fdint'.")
 from constants import me, mp, ec, hbar, kb
 
 """Plot density of states and Fermi-Dirac distribution for a fermion gas."""
