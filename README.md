@@ -1,4 +1,5 @@
-Various simulation codes used in my notes on astronomy and astrophysics (see https://astro.ymniquet.fr; the notes are in French, but the codes are documented in English). Author: Yann-Michel Niquet (ymniquet@gmail.com).
+Various simulation codes used in my notes on astronomy and astrophysics (see https://astro.ymniquet.fr; the notes are in French, but the codes are documented in English). 
+Author: Yann-Michel Niquet.
 
 1) Helpers:
 - constants.py: Physical constants.
