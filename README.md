@@ -15,4 +15,4 @@ Various simulation codes used in my notes on astronomy and astrophysics (see htt
 - Chandrasekhar.py: Radius of a degenerate, relativistic object and the Chandrasekhar mass limit.
 
 3) Others:
-- OPAL/: The OPAL opacity tables and Fortran bindings (see https://opalopacity.llnl.gov/existing.html). See OPAL/opal.f for information on how to compile (used by opacite.py and etoile.py).
+- OPAL/: The OPAL opacity tables and Fortran bindings (see https://opalopacity.llnl.gov/existing.html). See OPAL/opal.f for information on how to compile (used by opacity.py and star.py).
