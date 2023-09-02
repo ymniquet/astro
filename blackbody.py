@@ -55,5 +55,3 @@ axl.imshow(gradient, extent = [400, 700, 0, 6], cmap = colormaps["rainbow"], asp
 savefig("corpsnoir.pdf")
 
 show()
-
-

@@ -47,26 +47,26 @@ def pressure(T, n):
   e = pe*fdk(1.5, rmu) # Density of energy.
   P = 2*e/3 # Pressure.
   return P
-  
+
 def plot_PT(ax, n, Ts, c = "b"):
   """Plot pressure in axes ax as a function of temperatures Ts (K) for a given density n (m^{-3}), with color c."""
   l = 1e10*n**(-1./3) # Average inter-particle distance (A).
   Ps = array([pressure(T, n) for T in Ts])
   ax.loglog(Ts, Ps, "-", color = c, lw = 2.5, label = f"$\Lambda={l:.4G}$\,\AA")
-  ax.plot(Ts, n*kb*Ts, ":", color = c) # Classical, non-degenerate limit.  
+  ax.plot(Ts, n*kb*Ts, ":", color = c) # Classical, non-degenerate limit.
   Tdeg = (2*pi*hbar**2/(m*kb))*(n/nd)**(2./3) # Degeneracy temperature.
-  ax.axvline(Tdeg, linestyle = "-.", color = c) 
+  ax.axvline(Tdeg, linestyle = "-.", color = c)
   Pdeg = (hbar**2/(5*m))*(6*pi**2/nd)**(2./3)*n**(5./3) # Degenerate pressure.
-  ax.axhline(Pdeg, linestyle = "--", color = c) 
-  
+  ax.axhline(Pdeg, linestyle = "--", color = c)
+
 def plot_Pn(ax, T, ns, c = "b"):
   """Plot pressure in axes ax as a function of densities ns (m^{-3}) for a given temperature T (K), with color c."""
   ls = 1e10*ns**(-1./3) # Average inter-particle distance (A).
   Ps = array([pressure(T, n) for n in ns])
   ax.loglog(ls, Ps, "-", color = c, lw = 2.5, label = f"$T=10^{log10(T):.0f}$\,K")
-  ax.plot(ls, ns*kb*T, ":", color = c) # Classical, non-degenerate limit.  
+  ax.plot(ls, ns*kb*T, ":", color = c) # Classical, non-degenerate limit.
   ndeg = nd*(m*kb*T/(2*pi*hbar**2))**1.5 # Degeneracy density.
-  ax.axvline(1e10*ndeg**(-1./3), linestyle = "-.", color = c) 
+  ax.axvline(1e10*ndeg**(-1./3), linestyle = "-.", color = c)
 
 ### Plots.
 
@@ -123,5 +123,4 @@ axr.set_xlabel("$n$ (cm$^{-3}$)")
 savefig("P_n.pdf")
 
 show()
-
 

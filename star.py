@@ -34,21 +34,21 @@ StarComposition = namedtuple("StarComposition", ["X", "Y", "Z", "XCNO"])
 
 ############################################
 ### Hydrostatic main sequence star class ###
-### with Kramer's opacity laws.          ###
+### with Kramers' opacity laws.          ###
 ############################################
 
 class KramersHydrostaticMainSequenceStar:
-  """Hydrostatic main sequence star class with Kramer's opacity laws."""
+  """Hydrostatic main sequence star class with Kramers' opacity laws."""
 
   def __init__(self, M, ngrid = 2**10, rgrid = 1.):
     """Initialize star with total mass M (kg).
-       ngrid is the number of points on the geometric finite-differences grid, 
+       ngrid is the number of points on the geometric finite-differences grid,
        and rgrid is the ratio between the first and last grid steps."""
     if M <= 0.: raise ValueError("Error, M <= 0.")
     self.M = M
     self.set_grid(ngrid, rgrid) # Set-up grid.
     self.set_composition(0.7346, 0.0165, 0.0165) # Default composition = Sun.
-    
+
   def set_composition(self, X, Z = 0., XCNO = 0.):
     """Set star composition.
        X is the hydrogen mass fraction, and Z the metallicity (default Z = 0).
@@ -62,9 +62,9 @@ class KramersHydrostaticMainSequenceStar:
     self.comp = StarComposition(X, Y, Z, XCNO)
     self.mu = 4.e-3/(6.*X+Y+2.) # Average molecular mass in kg/mol.
     self.set_cp() # Set default isobaric heat capacity per particle.
-    self.set_opacity_parameters() # Set default opacity parameters.        
-    self.set_surface_mass_density() # Set default mass density at the surface of the star.   
-    self.enable_radiative_pressure() # Account for radiative pressure.    
+    self.set_opacity_parameters() # Set default opacity parameters.
+    self.set_surface_mass_density() # Set default mass density at the surface of the star.
+    self.enable_radiative_pressure() # Account for radiative pressure.
 
   def set_cp(self, cp = 5.*cst.kb/2.):
     """Set isobaric heat capacity *per particle*.
@@ -73,7 +73,7 @@ class KramersHydrostaticMainSequenceStar:
     self.Cp = cst.Na*cp/self.mu # Isobaric heat capacity per unit of mass (J/K/kg).
     self.gamma = cp/(cp-cst.kb) # Adiabatic coefficient.
     self.reset_solution()
-    
+
   def set_surface_mass_density(self, rhos = 3.e-4):
     """Define the hydrostatic surface of the star as the radius R at which the
        mass density matches the input rhos (kg/m^3)."""
@@ -81,16 +81,15 @@ class KramersHydrostaticMainSequenceStar:
     self.ns = rhos/np.atleast_1d(self.mu)[-1]
     self.BC = "density"
     self.reset_solution()
-    
+
   def set_surface_pressure(self, Ps = cst.atm):
-    """Define the hydrostatic surface of the star as the radius R at which the 
+    """Define the hydrostatic surface of the star as the radius R at which the
        pressure matches the input Ps (Pa)."""
     if Ps <= 0.: raise ValueError("Error, Ps <= 0.")
     self.Ps = Ps
-    self.pressure_boundary_condition = True    
-    self.BC = "pressure"    
-    self.reset_solution()    
-    
+    self.BC = "pressure"
+    self.reset_solution()
+
   def enable_radiative_pressure(self, enable = True):
     """Account for radiative pressure if enable = True."""
     self.prad = enable
@@ -100,7 +99,7 @@ class KramersHydrostaticMainSequenceStar:
     """Set-up a geometric finite-differences grid.
        ngrid is the number of points and rgrid is the ratio between the first and last grid steps."""
     if ngrid < 2: raise ValueError("Error, ngrid < 2.")
-    if rgrid <= 0.: ValueError("Error, rgrid <= 0.")
+    if rgrid <= 0.: raise ValueError("Error, rgrid <= 0.")
     if rgrid == 1.:
       r = np.linspace(0., 1., ngrid)
     else:
@@ -108,7 +107,7 @@ class KramersHydrostaticMainSequenceStar:
       r[ 0] = 0.
       r[-1] = 1.
     self.init_grid(r)
-      
+
   def init_grid(self, r):
     """Initialize the finite-differences grid.
        r is a mesh of the [0, 1] interval such that r[0] = 0 and r[-1] = 1."""
@@ -123,32 +122,32 @@ class KramersHydrostaticMainSequenceStar:
     if any(self.r != np.sort(self.r)): raise ValueError("Error, r is not sorted.")
     self.dr = self.r[1:]-self.r[:-1] # Grid steps.
     rc = (self.r[:-1]+self.r[1:])/2. # Mid-points.
-    self.dVl = np.empty(self.ngrid) # Volume of the half-shell on the left of each grid point.    
-    self.dVl[1:] = 4.*pi*(self.r[1:]**3-rc**3)/3. 
+    self.dVl = np.empty(self.ngrid) # Volume of the half-shell on the left of each grid point.
+    self.dVl[1:] = 4.*pi*(self.r[1:]**3-rc**3)/3.
     self.dVl[ 0] = 0.
-    self.dVr = np.empty(self.ngrid) # Volume of the half-shell on the right of each grid point.    
-    self.dVr[:-1] = 4.*pi*(rc**3-self.r[:-1]**3)/3. 
-    self.dVr[ -1] = 0.   
+    self.dVr = np.empty(self.ngrid) # Volume of the half-shell on the right of each grid point.
+    self.dVr[:-1] = 4.*pi*(rc**3-self.r[:-1]**3)/3.
+    self.dVr[ -1] = 0.
     self.dVc = self.dVl+self.dVr # Volume of the shell centered on each grid point.
     self.reset_solution()
 
   def to_grid(self, x):
     """Expand the quantity x on the grid.
-       x must either be scalar or 1d-like with dimension ngrid."""
-    n = np.ndim(x) 
+       x must either be a scalar or a 1D-like object with size ngrid."""
+    n = np.ndim(x)
     if n == 0:
       return np.full(self.ngrid, x)
     elif n == 1:
       if len(x) != self.ngrid:
-        raise TypeError("Error, x must either be scalar or 1d-like with dimension ngrid.")
+        raise TypeError("Error, x must either be a scalar or a 1D-like object with size ngrid.")
       return np.array(x)
     else:
-      raise TypeError("Error, x must either be scalar or 1d-like with dimension ngrid.")
-    
+      raise TypeError("Error, x must either be a scalar or a 1D-like object with size ngrid.")
+
   #####################################################
   # Equations of state of a non-degenerate ideal gas. #
   #####################################################
-  
+
   # Pressure as a function of density & temperature.
 
   def pressure_gas(self, n, T):
@@ -172,30 +171,30 @@ class KramersHydrostaticMainSequenceStar:
     """Return the density n (mol/m^3) as a function of
        pressure P (Pa) and temperature T (K)."""
     return (P/T-4.*cst.sigma*self.prad*T**3/(3.*cst.c))/cst.R
-  
+
   # Temperature as a function of density & pressure.
-  
+
   # Vectorize the solution of P = 4.*cst.sigma*T**3/(3.*cst.c)+n*cst.R*T.
   _vectorized_temperature_prad = np.vectorize(lambda n, P: np.real(np.roots([4.*cst.sigma/(3.*cst.c), 0., 0., n*cst.R, -P])[3]), otypes = [float])
 
   def temperature(self, n, P):
     """Return the temperature T (K) as a function of
-       density n (mol/m^3) and pressure P (Pa)."""    
+       density n (mol/m^3) and pressure P (Pa)."""
     if self.prad:
       return self._vectorized_temperature_prad(n, P) # Radiative pressure enabled.
     else:
       return P/(n*cst.R) # Radiative pressure disabled.
-    
+
   ########################################
   # Opacity.                             #
   # Override as needed in child classes. #
   ########################################
 
   def set_opacity_parameters(self, gbf = 1., tbf = 10., gff = 1.):
-    """Set opacity parameters gbf (Gaunt factor for bound-free transitions), tbf (Guillotine factor for bound-free transitions) 
+    """Set opacity parameters gbf (Gaunt factor for bound-free transitions), tbf (Guillotine factor for bound-free transitions)
        and gff (Gaunt factor for free-free transitions)."""
     self.gbf = gbf # Gaunt factor for bound-free transitions.
-    self.tbf = tbf # Guillotine factor for bound-free transitions.    
+    self.tbf = tbf # Guillotine factor for bound-free transitions.
     self.gff = gff # Gaunt factor for free-free transitions.
     self.reset_solution()
 
@@ -246,18 +245,18 @@ class KramersHydrostaticMainSequenceStar:
     """Return the power per unit of mass epsilon (W/kg) for the CNO cycle.
        rho is the mass density (kg/m^3) and T the temperature (K)."""
     one3 = 1./3.
-    two3 = 2./3.      
-    T6 = T/1.e6  
-    rho3 = rho/1.e3    
+    two3 = 2./3.
+    T6 = T/1.e6
+    rho3 = rho/1.e3
     X = self.comp.X
     XCNO = self.comp.XCNO
     CCNO = 1.+0.0027*T6**one3-0.00778*T6**two3-0.000149*T6
     return 1.e-4*8.67e27*rho3*X*XCNO*CCNO*T6**(-two3)*np.exp(-152.28*T6**(-one3))
-      
+
   def epsilon_nuclear(self, rho, T):
     """Return the power per unit of mass epsilon (W/kg) produced by nuclear reactions.
        rho is the mass density (kg/m^3) and T the temperature (K)."""
-    return self.epsilon_PP(rho, T)+self.epsilon_CNO(rho, T) 
+    return self.epsilon_PP(rho, T)+self.epsilon_CNO(rho, T)
 
   ############################
   # Miscellaneous integrals. #
@@ -278,7 +277,7 @@ class KramersHydrostaticMainSequenceStar:
     m = np.cumsum(rho*self.dVc)-rho*self.dVr
     m[1:] /= self.r[1:]**2
     return cst.G*m*R
-  
+
   # Luminosity.
 
   def luminosity(self, rho, epsilon, R):
@@ -306,82 +305,86 @@ class KramersHydrostaticMainSequenceStar:
     P = self.pressure(rho/self.mu, T) # Pressure (Pa).
     return R, rho, P, T
 
-  def solve(self, epsilon = 1.e-6, nmax = 1024, alpha = 0.2, plot = False, guess = None):
-    """Solve the equations for the star with at most nmax self-consistent iterations up to relative precision epsilon.
-       The radius, pression, temperature and luminosity are considered as function(als) of the mass density rho.
-       Starting from a given mass density rho, the equation for the pressure P is first solved, then the temperature 
+  def solve(self, epsilon = 1.e-6, nmax = 1024, alphamin = 0.2, alphamax = 1., plot = False, guess = None):
+    """Solve the equations for the star up to relative precision epsilon with at most nmax self-consistent iterations.
+       The radius, pression, temperature and luminosity are considered as function(al)s of the mass density rho.
+       Starting from a given mass density rho, the equation for the pressure P is first solved, then the temperature
        T(rho, P) is calculated from the equation of state of the ideal gas, and the luminosity L(rho, T) is computed.
-       The temperature T -> T_new can next be updated with the energy transfer equation, as well as the density 
-       rho -> rho_new(P, T_new) with the equation of state. The processus is iterated until |rho-rhop| < epsilon*rhop[0].
-       alpha is the mixing (damping) factor between successive iterations [actually, rho -> alpha*rho_new+(1-alpha)*rho;
-       decrease alpha if not converging]. If plot is True, plot the solution at each self-consistent iteration.
-       If not None, guess = (R, rho, P, T) is an initial guess for the solution, with R the radius of the star (m),
-       rho the mass density (kg/m^3), P the pressure (Pa) and T the temperature (K) on the grid."""
-           
+       The temperature T -> T_new is next updated with the energy transfer equation, as well as the density
+       rho -> rho_new(P, T_new) with the equation of state. The processus is iterated until |rho_new-rho| < epsilon*rho[0].
+       To prevent or smooth mass sloshing from one iteration to the next, the density is actually updated as
+       rho -> alpha*rho_new+(1-alpha)*rho, where 0 < alphamin <= alpha <= alphamax <= 1 is a mixing factor ;
+       decrease alphamin as well as alphamax-alphamin if the calculation does not converge. If plot is True,
+       plot the solution at each self-consistent iteration. If not None, guess = (R, rho, P, T) is an initial
+       guess for the solution, with R the radius of the star (m), rho the mass density (kg/m^3), P the pressure (Pa)
+       and T the temperature (K) on the grid."""
+
     def plot_solution(n, rho, P, T, L):
       """Plot solution at iteration n."""
       for m, plots in self.lastplots[-2:]: # Change line color and style for previous iterations.
         l = "--"
         c = "blue" if m == n-1 else "gray"
-        for p in plots: 
+        for p in plots:
           p.set_color(c)
           p.set_linestyle(l)
       if len(self.lastplots) >= 3: # Remove oldest iterations.
         m, plots = self.lastplots.pop(0)
-        for p in plots: p.remove() # !! WARNING : Segfaults if the figure has been closed. !!
+        for p in plots: p.remove() # !! WARNING : This segfaults if the figure has been closed. !!
       plots = []
-      plt.ion()   
+      plt.ion()
       plt.figure(11)
       plots.append(plt.semilogy(self.r, rho/1.e3, "b-")[-1])
       plt.xlabel("$r/R$")
-      plt.ylabel("$\\rho$ (g/cm$^3$)") 
-      plt.title(f"$n={n}$")        
+      plt.ylabel("$\\rho$ (g/cm$^3$)")
+      plt.title(f"$n={n}$")
       plt.figure(12)
       plots.append(plt.semilogy(self.r, P/1.e9, "b-")[-1])
       plt.xlabel("$r/R$")
       plt.ylabel("$P$ (GPa)")
-      plt.title(utils.flatex(f"$n={n}, P(0)={P[0]/1.e9:.3e}$ GPa"))           
+      plt.title(utils.flatex(f"$n={n}, P(0)={P[0]/1.e9:.3e}$ GPa"))
       plt.figure(13)
       plots.append(plt.semilogy(self.r, T, "b-")[-1])
       plt.xlabel("$r/R$")
-      plt.ylabel("$T$ (K)") 
+      plt.ylabel("$T$ (K)")
       plt.title(f"$n={n}, T(R)={T[-1]:.0f}$ K")
       plt.figure(14)
       plots.append(plt.plot(self.r, L, "b-")[-1])
       plt.xlabel("$r/R$")
       plt.ylabel("$L$ (W)")
-      plt.title(utils.flatex(f"$n={n}, L={L[-1]:.3e}$ W"))        
-      plt.show()      
+      plt.title(utils.flatex(f"$n={n}, L={L[-1]:.3e}$ W"))
+      plt.show()
       self.lastplots.append((n, plots))
-      
+
     # Reset solution.
     self.reset_solution()
     # Set-up convergence plots.
-    if plot: self.lastplots = []    
+    if plot: self.lastplots = []
     # Self-consistent iterations.
     n = 0 # Number of self-consistent iterations.
     ierr = 0 # Return code.
-    print( "+-------+"+7*(14*"-"+"+"))
-    print(f"| Iter. | {'Error':>12} | {'R (km)':>12} | {'L (W)':>12} | {'T(0) (K)':>12} | {'T(R) (K)':>12} | {'P(0) (GPa)':>12} | {'P(R) (GPa)':>12} |")
-    print( "+-------+"+7*(14*"-"+"+")) 
+    alphamax = max(alphamin, alphamax)
+    alpha = alphamax # Mixing factor.
+    print( "+-------+"+8*(14*"-"+"+"))
+    print(f"| Iter. | {'Error':>12} | {'Alpha':>12} | {'R (km)':>12} | {'L (W)':>12} | {'T(0) (K)':>12} | {'T(R) (K)':>12} | {'P(0) (GPa)':>12} | {'P(R) (GPa)':>12} |")
+    print( "+-------+"+8*(14*"-"+"+"))
     # Initial guess.
     if guess is not None:
       R, rho, P, T = guess
     else:
       R, rho, P, T = self.homogeneous_star() # Use homogeneous star as initial guess.
     L = self.luminosity(rho, self.epsilon_nuclear(rho, T), R) # Luminosity.
-    print(f"| {n:5d} | {np.NaN:12.5e} | {R/1e3:12.5e} | {L[-1]:12.5e} | {T[0]:12.5e} | {T[-1]:12.5e} | {P[0]/1e9:12.5e} | {P[-1]/1e9:12.5e} |")
+    print(f"| {n:5d} | {np.NaN:12.5e} | {alpha:12.5e} | {R/1e3:12.5e} | {L[-1]:12.5e} | {T[0]:12.5e} | {T[-1]:12.5e} | {P[0]/1e9:12.5e} | {P[-1]/1e9:12.5e} |")
     if plot: plot_solution(n, rho, P, T, L) # Plot initial guess if apppropriate.
-    while True: 
+    while True:
       # New self-consistent iteration.
-      n += 1 
+      n += 1
       if n > nmax:
-        print( "+-------+"+7*(14*"-"+"+"))
+        print( "+-------+"+8*(14*"-"+"+"))
         print(f"Error, could not converge within {nmax} iterations.")
         ierr = 1
-        break                
-      # Save present density.
-      rhop = np.copy(rho)    
+        break
+      # Save density.
+      rhop = np.copy(rho)
       # Compute gravitational field.
       g = self.gfield(rho, R)
       # Solve pressure equation.
@@ -392,54 +395,63 @@ class KramersHydrostaticMainSequenceStar:
         P[-1] = self.pressure(self.ns, T[-1]) # Set mass density at the hydrostatic surface.
       else:
         raise ValueError("Error, BC must be 'pressure' or 'density'.")
-      dPdr = (dPdr[:-1]+dPdr[1:])/2. # Average dP/dr at mid-points.      
-      dP = -np.cumsum(dPdr[::-1]*self.dr[::-1])*R # Integrate dP/dr. 
-      P[:-1] = P[-1]+dP[::-1]       
+      dPdr = (dPdr[:-1]+dPdr[1:])/2. # Average dP/dr at mid-points.
+      dP = -np.cumsum(dPdr[::-1]*self.dr[::-1])*R # Integrate dP/dr.
+      P[:-1] = P[-1]+dP[::-1]
       # Get temperature from the equation of state.
       Tp = self.temperature(rho/self.mu, P)
-      # Compute luminosity. 
+      # Compute luminosity.
       L = self.luminosity(rho, self.epsilon_nuclear(rho, Tp), R)
-      # Update temperature with the energy transfer equation.     
+      # Update temperature with the energy transfer equation.
       dTdr_rad = -3.*self.kappa(rho, Tp)*rho*L/(64.*pi*cst.sigma*Tp**3) # dT/dr for radiative transfer.
       dTdr_rad[1:] /= (self.r[1:]*R)**2
-      dTdr_rad = (dTdr_rad[:-1]+dTdr_rad[1:])/2. # Average dTdr_rad at mid-points.      
-      dTdr_cnv = -g/self.Cp # dT/dr for convection. 
-      dTdr_cnv = (dTdr_cnv[:-1]+dTdr_cnv[1:])/2. # Average dTdr_cnv at mid-points.      
+      dTdr_rad = (dTdr_rad[:-1]+dTdr_rad[1:])/2. # Average dTdr_rad at mid-points.
+      dTdr_cnv = -g/self.Cp # dT/dr for convection.
+      dTdr_cnv = (dTdr_cnv[:-1]+dTdr_cnv[1:])/2. # Average dTdr_cnv at mid-points.
       # Sort out radiative & convective zones.
       convection = (dTdr_cnv > dTdr_rad)
       #convection[-1] = True # Enforce convection at the surface.
       dTdr = np.where(convection, dTdr_cnv, dTdr_rad)
       # Integrate dT/dr.
-      dT = -np.cumsum(dTdr[::-1]*self.dr[::-1])*R    
+      dT = -np.cumsum(dTdr[::-1]*self.dr[::-1])*R
       T[ -1] = (L[-1]/(4.*pi*cst.sigma*R**2))**(1./4.) # Surface temperature from luminosity (Stefan-Boltzmann law).
       T[:-1] = T[-1]+dT[::-1]
-      # Update density from the equation of state.     
-      rho = abs(self.density(P, T))*self.mu # abs for safety.
+      # Update density from the equation of state.
+      rho = abs(self.density(P, T))*self.mu # Take abs for safety.
       # Compute error.
-      error = np.sqrt(np.sum(((rho-rhop)/rhop[0])**2)+np.sum(((T-Tp)/Tp[-1])**2))
-      print(f"| {n:5d} | {error:12.5e} | {R/1e3:12.5e} | {L[-1]:12.5e} | {T[0]:12.5e} | {T[-1]:12.5e} | {P[0]/1e9:12.5e} | {P[-1]/1e9:12.5e} |")            
+      error = np.sqrt(np.sum(((rho-rhop)/rhop[0])**2))#+np.sum(((T-Tp)/Tp[-1])**2))
+      # Compute mixing factor.
+      if n > 1:
+        if error > errorp:                   # The error increases -> the input and output densities spread farther and farther apart.
+          alpha = max(alphamin, alphap/1.33) # The calculation *may* thus be diverging -> reduce alpha for safety.
+        else:
+          alpha = min(alphamax, alphap*1.25) # Otherwise, increase alpha to speed up convergence.
+      print(f"| {n:5d} | {error:12.5e} | {alpha:12.5e} | {R/1e3:12.5e} | {L[-1]:12.5e} | {T[0]:12.5e} | {T[-1]:12.5e} | {P[0]/1e9:12.5e} | {P[-1]/1e9:12.5e} |")
       # Check convergence.
       if error < epsilon:
-        print( "+-------+"+7*(14*"-"+"+"))
-        print(f"Converged within {n} iterations.")
+        print( "+-------+"+8*(14*"-"+"+"))
+        print(f"Converged in {n} iterations.")
         break
-      # Mix previous & present densities.
+      # Mix input & output densities.
       rho = alpha*rho+(1.-alpha)*rhop
+      # Save error and mixing factor.
+      errorp = error
+      alphap = alpha
       # Compute total mass.
       M = np.sum(rho*self.dVc)*R**3
       # Update star radius.
-      R = R*(self.M/M)**(1./3.)                  
+      R = R*(self.M/M)**(1./3.)
       # Plot solution if apppropriate.
-      if plot: 
-        plot_solution(n, rho, P, T, L)         
-        if input() == "END": sys.exit(0) # Pause.        
+      if plot:
+        plot_solution(n, rho, P, T, L)
+        if input() == "END": sys.exit(0) # Pause.
     # Store solution within the object.
     if ierr == 0:
       #plt.figure(20) # TEST
       #rc = (self.r[:-1]+self.r[1:])/2.
       #plt.semilogy(rc, -dTdr_cnv, "b-", label = "Cnv")
       #plt.semilogy(rc, -dTdr_rad, "r-", label = "Rad")
-      #plt.semilogy(rc, -dTdr    , "k-", label = "Tot")      
+      #plt.semilogy(rc, -dTdr    , "k-", label = "Tot")
       #plt.xlabel("$r/R$")
       #plt.ylabel("$-dT/dr$ (K/m)")
       #plt.xlim(0., 1.)
@@ -455,8 +467,8 @@ class KramersHydrostaticMainSequenceStar:
        convection[0:ngrid-1] is True where the energy is transferred by convection between grid nodes."""
     self.R = R
     self.P = np.copy(P)
-    self.T = np.copy(T)    
-    self.L = np.copy(L)    
+    self.T = np.copy(T)
+    self.L = np.copy(L)
     self.rho = np.copy(rho)
     self.convection = np.copy(convection)
 
@@ -469,11 +481,11 @@ class KramersHydrostaticMainSequenceStar:
     """Reset solution."""
     self.R = None
     self.P = None
-    self.T = None    
-    self.L = None    
+    self.T = None
+    self.L = None
     self.rho = None
     self.convection = None
-    
+
   def get_solution(self):
     """Return solution as (R, rho, P, T), with R the radius of the star (m),
        rho the mass density (kg/m^3), P the pressure (Pa) and T the temperature (K) on the grid."""
@@ -481,7 +493,7 @@ class KramersHydrostaticMainSequenceStar:
 
 #############################################################################
 ### Hydrostatic main sequence star class                                  ###
-### with modified Kramer's opacity laws.                                  ###
+### with modified Kramers' opacity laws.                                  ###
 ### The guillotine factor now reads:                                      ###
 ###   tbf = 0.71*(rho*(1.+comp.X))**0.2                                   ###
 ### with rho the mass density in kg/m^3. See:                             ###
@@ -489,12 +501,12 @@ class KramersHydrostaticMainSequenceStar:
 #############################################################################
 
 class ModKramersHydrostaticMainSequenceStar(KramersHydrostaticMainSequenceStar):
-  """Hydrostatic main sequence star class with modified Kramer's opacity laws:
+  """Hydrostatic main sequence star class with modified Kramers' opacity laws:
      the guillotine factor reads tbf = 0.71*(rho*(1.+comp.X))**0.2
      with rho the mass density in kg/m^3."""
-  
+
   def set_opacity_parameters(self, gbf = 1., gff = 1.):
-    """Set opacity parameters gbf (Gaunt factor for bound-free transitions) and gff (Gaunt factor for free-free transitions)."""    
+    """Set opacity parameters gbf (Gaunt factor for bound-free transitions) and gff (Gaunt factor for free-free transitions)."""
     self.gbf = gbf # Gaunt factor for bound-free transitions.
     self.gff = gff # Gaunt factor for free-free transitions.
     self.reset_solution()
@@ -502,37 +514,37 @@ class ModKramersHydrostaticMainSequenceStar(KramersHydrostaticMainSequenceStar):
   def kappa_bf(self, rho, T):
     """Return Kramers' opacity kappa (m^2/kg) for bound-free transitions.
        rho is the mass density (kg/m^3) and T the temperature (K)."""
-    tbf = 0.71*(rho*(1.+self.comp.X))**0.2       
+    tbf = 0.71*(rho*(1.+self.comp.X))**0.2
     return 4.34e21*(self.gbf/tbf)*(1.+self.comp.X)*self.comp.Z*rho*T**-3.5
-  
+
 ##########################################################
 ### Hydrostatic main sequence star class               ###
-### with extended Kramer's opacity laws accounting for ###
+### with extended Kramers' opacity laws accounting for ###
 ### absorption by H-, H2O & CO near the surface,       ###
 ### according to:                                      ###
 ### https://www.astro.princeton.edu/~gk/A403/opac.pdf. ###
 ##########################################################
 
 class ExtKramersHydrostaticMainSequenceStar(ModKramersHydrostaticMainSequenceStar):
-  """Hydrostatic main sequence star class with extended Kramer's opacity laws 
+  """Hydrostatic main sequence star class with extended Kramers' opacity laws
      accounting for absorption by H-, H2O & CO near the surface, according to:
      https://www.astro.princeton.edu/~gk/A403/opac.pdf."""
-    
+
   def kappa_Hm(self, rho, T):
     """Return opacity kappa (m^2/kg) for H-.
-       rho is the mass density (kg/m^3) and T the temperature (K)."""    
+       rho is the mass density (kg/m^3) and T the temperature (K)."""
     return 3.48e-28*np.sqrt(self.comp.Z*rho)*T**7.7
-    
+
   def kappa_H2O_CO(self, rho, T):
     """Return opacity kappa (m^2/kg) for H2O and CO.
-       rho is the mass density (kg/m^3) and T the temperature (K)."""     
+       rho is the mass density (kg/m^3) and T the temperature (K)."""
     return 0.01*self.comp.Z
-  
+
   def kappa(self, rho, T):
     """Return Rosseland's average opacity kappa (m^2/kg).
        rho is the mass density (kg/m^3) and T the temperature (K)."""
-    return self.kappa_H2O_CO(rho, T)+1./(1./self.kappa_Hm(rho, T)+1./(self.kappa_bb(rho, T)+self.kappa_bf(rho, T)+self.kappa_ff(rho, T)+self.kappa_Compton(rho, T)))    
-  
+    return self.kappa_H2O_CO(rho, T)+1./(1./self.kappa_Hm(rho, T)+1./(self.kappa_bb(rho, T)+self.kappa_bf(rho, T)+self.kappa_ff(rho, T)+self.kappa_Compton(rho, T)))
+
 ###################################################
 ### Hydrostatic main sequence star class        ###
 ### with OPAL opacity tables. See:              ###
@@ -540,26 +552,26 @@ class ExtKramersHydrostaticMainSequenceStar(ModKramersHydrostaticMainSequenceSta
 ###################################################
 
 if _OPAL: # Define only if OPAL bindings succesfully loaded.
-  
-  class OPALHydrostaticMainSequenceStar(KramersHydrostaticMainSequenceStar):  
-    """Hydrostatic main sequence star class with OPAL opacity tables. See: 
-       https://opalopacity.llnl.gov/existing.html."""  
-       
+
+  class OPALHydrostaticMainSequenceStar(KramersHydrostaticMainSequenceStar):
+    """Hydrostatic main sequence star class with OPAL opacity tables. See:
+       https://opalopacity.llnl.gov/existing.html."""
+
     def set_opacity_parameters(self):
-      """Set opacity parameters (None for OPAL)."""          
-      self.reset_solution()       
-      
-    # Vectorize opal.kappa.     
+      """Set opacity parameters (None for OPAL)."""
+      self.reset_solution()
+
+    # Vectorize opal.kappa.
     vectorized_kappa_opal = np.vectorize(lambda rho, T, X, Z: opal.kappa(rho, T, X, Z), otypes = [float])
-         
+
     def kappa(self, rho, T):
       """Return OPAL Rosseland average opacity kappa (m^2/kg).
-         rho is the mass density (kg/m^3) and T the temperature (K).""" 
+         rho is the mass density (kg/m^3) and T the temperature (K)."""
       return self.vectorized_kappa_opal(rho, T, self.comp.X, self.comp.Z)
-    
-    # Vectorize opal.kappa.     
-    _vectorized_check_kappa_bounds_opal = np.vectorize(lambda rho, T, X, Z: opal.check_kappa_bounds(rho, T, X, Z), otypes = [bool])    
-    
+
+    # Vectorize opal.check_kappa_bounds.
+    _vectorized_check_kappa_bounds_opal = np.vectorize(lambda rho, T, X, Z: opal.check_kappa_bounds(rho, T, X, Z), otypes = [bool])
+
     def post_process_solution(self, **kwargs):
       """Post-process solution.
          Check that the temperature and density are within the OPAL tables throughout the whole radiative transfer zone."""
@@ -579,9 +591,9 @@ if _OPAL: # Define only if OPAL bindings succesfully loaded.
 ### Add postprocessing & plot extensions to ###
 ### an existing star class.                 ###
 ###############################################
-    
+
 def AddPlotExtensions(base):
-  
+
   class ExtendedHydrostaticMainSequenceStar(base):
     """Hydrostatic main sequence star class with post-processing tools."""
 
@@ -591,7 +603,7 @@ def AddPlotExtensions(base):
       """Compute gravitational field, etc..."""
       base.post_process_solution(self, **kwargs)
       self.m = self.mass(self.rho, self.R) # Enclosed mass (kg).
-      self.g = self.gfield(self.rho, self.R) # Gravitational field (m/s^2).    
+      self.g = self.gfield(self.rho, self.R) # Gravitational field (m/s^2).
       self.Pgas = self.pressure_gas(self.rho/self.mu, self.T) # Gaz pressure (Pa).
       self.Prad = self.pressure_rad(self.rho/self.mu, self.T) # Radiation pressure (Pa).
       #self.P = self.Pgas+self.Prad # Total pressure (Pa).
@@ -610,7 +622,7 @@ def AddPlotExtensions(base):
       """Reset solution."""
       KramersHydrostaticMainSequenceStar.reset_solution(self)
       self.m = None
-      self.g = None    
+      self.g = None
       self.Pgas = None
       self.Prad = None
       self.enPP = None
@@ -643,7 +655,7 @@ def AddPlotExtensions(base):
           print("The star is fully convective.")
         else:
           if self.convection[0]:
-            i = np.where(~self.convection)[0][0] 
+            i = np.where(~self.convection)[0][0]
             rconv = self.r[i]
             Mconv = self.m[i]
             print(f"Convective core radius Rconv = {rconv*self.R/1.e3:.0f} km = {rconv:.3f}R.")
@@ -671,22 +683,22 @@ def AddPlotExtensions(base):
 
       plt.figure(1) # Mass density.
       ax = plt.axes()
-      plot_convection(ax)      
-      ax.semilogy(self.r, self.rho/1.e3, "b-")    
+      plot_convection(ax)
+      ax.semilogy(self.r, self.rho/1.e3, "b-")
       ax.set_xlim(0., 1.)
       ax.set_xlabel("$r/R$")
       ax.set_ylabel("$\\rho$ (g/cm$^3$)")
       if self.panels: ax.text(0.05, 0.05, "(a)", fontsize = 20, ha = "left", va = "bottom", transform = ax.transAxes)
       plt.figure(2) # Pressure.
       ax = plt.axes()
-      plot_convection(ax)      
+      plot_convection(ax)
       if self.prad:
         ax.semilogy(self.r, self.Pgas/cst.atm, "r--", label = "Gaz")
         ax.semilogy(self.r, self.Prad/cst.atm, "m:", label = "Radiation")
         ax.semilogy(self.r, self.P/cst.atm, "b-", label = "Total")
         plt.legend(loc = "center left")
       else:
-        ax.semilogy(self.r, self.P/cst.atm, "b-")        
+        ax.semilogy(self.r, self.P/cst.atm, "b-")
       ax.set_xlim(0., 1.)
       ax.set_xlabel("$r/R$")
       ax.set_ylabel("$P$ (atm)")
@@ -713,14 +725,16 @@ def AddPlotExtensions(base):
       ax = plt.axes()
       plot_convection(ax)
       mfp = self.mfp*1.e3
-      ax.semilogy(self.r, mfp, "b:")
       radiative = np.zeros(self.ngrid, dtype = bool)
       radiative[:-1] = radiative[:-1] | ~self.convection
       radiative[ 1:] = radiative[ 1:] | ~self.convection
-      mfp = np.where(radiative, mfp, np.NaN)
-      ax.semilogy(self.r, mfp, "b-")
+      mfpr = np.where(radiative, mfp, np.NaN)
+      ax.semilogy(self.r, mfpr, "b-")
+      ymin, ymax = ax.get_ylim()
+      ax.semilogy(self.r, mfp, "b:")
       ax.set_xlim(0., 1.)
-      ax.set_ylim(1.e-2, 1.e1)
+      ax.set_ylim(ymin, ymax)
+      #ax.set_ylim(1.e-2, 1.e1)
       ax.set_xlabel("$r/R$")
       ax.set_ylabel("$\ell$ (mm)")
       if self.panels: ax.text(0.05, 0.05, "(e)", fontsize = 20, ha = "left", va = "bottom", transform = ax.transAxes)
@@ -730,15 +744,15 @@ def AddPlotExtensions(base):
         ax.plot(self.r, self.to_grid(self.comp.X), "b-", label = "$X$ (H)")
         ax.plot(self.r, self.to_grid(self.comp.Y), "r--", label = "$Y$ (He)")
         ax.plot(self.r, self.to_grid(self.comp.Z), "m-.", label = "$Z$ (M)")
-        ax.plot(self.r, self.to_grid(self.comp.XCNO), "g:", label = "$X_\mathrm{CNO}$")      
+        ax.plot(self.r, self.to_grid(self.comp.XCNO), "g:", label = "$X_\mathrm{CNO}$")
         ax.set_xlim(0., 1.)
         ax.set_ylim(0., 1.)
         ax.set_xlabel("$r/R$")
-        ax.set_ylabel("Fraction massique")  
-        plt.legend(loc = "center right")      
-      #plt.figure(7) # P**(1-gamma)*T**gamma # TEST 
+        ax.set_ylabel("Fraction massique")
+        plt.legend(loc = "center right")
+      #plt.figure(7) # P**(1-gamma)*T**gamma # TEST
       #ax = plt.axes()
-      #plot_convection(ax)    
+      #plot_convection(ax)
       #ax.plot(self.r, self.P**(1.-self.gamma)*self.T**self.gamma, "b-")
       #ax.set_xlim(0., 1.)
       #ax.set_xlabel("$r/R$")
@@ -776,92 +790,93 @@ def AddPlotExtensions(base):
       if self.panels: ax.text(-0.1, 0.975, "(f)", fontsize = 20, ha = "left", va = "top", transform = ax.transAxes)
 
   return ExtendedHydrostaticMainSequenceStar
-  
+
 #############
 ### Main. ###
 #############
 
 if __name__ == "__main__":
-  
+
   # The star parameters.
   M = 1.99e30     # Mass (kg).
   X = 0.7346      # Hydrogen mass fraction.
   Z = 0.0169      # Metallicity.
   XCNO = 0.0115   # C/N/O mass fraction in the core.
-  
+
   inhomogeneous = True # Use inhomogeneous star composition ?
-  def get_X(r):   # Inhomogeneous star composition.  
+  def get_X(r):   # Inhomogeneous star composition.
     """Return the hydrogen mass fraction X as a function of the reduced radial position r."""
     return X*(1.-np.exp(-(r/0.125)**2)/2) if inhomogeneous else X
-  
+
   ngrid = 2**10   # Number of grid points.
   rgrid = 1.      # Ratio of last to first grid step.
   rhos = 2.5e-2   # Photosphere mass density (kg/m^3).
   Ps = 19.45      # Surface pressure (atm).
   BC = "density"  # Set BC = "pressure" to set Ps at the surface, "density" to set rhos at the surface.
   prad = True     # Enable radiative pressure.
-  
-  epsilon = 1.e-5 # Solution accuracy. Beware that OPAL interpolates opacity from a limited set of data and can not, therefore converge to epsilon <~ 1.e-5. 
+
+  epsilon = 1.e-6 # Solution accuracy. Beware that OPAL interpolates opacity from a limited set of data and can not, therefore converge to epsilon <~ 1.e-6.
   nmax = 16384    # Maximum number of self-consistent iterations.
-  alpha = 0.2     # Mixing parameter (decrease if does not converge).
+  alphamin = 0.2  # Minimal mixing parameter (decrease if does not converge).
 
   if _OPAL: # The model to solve.
     StarClass = OPALHydrostaticMainSequenceStar # OPAL.
+    initial_guess = True # OPAL needs a very good initial guess (obtained, e.g., with Kramers' laws for the opacity).
   else:
     StarClass = ModKramersHydrostaticMainSequenceStar # Modified Kramers' laws.
-    
+    initial_guess = False
+
   # Plot options.
   save_plots = False # Save plots on disk ?
-  plots_dir = "./Soleil2" # Plots directory 
+  plots_dir = "./Soleil" # Plots directory
 
   # First get an initial guess with an other model.
   # May be needed for OPAL which can only address a limited range of densities and temperatures.
   guess = None
-  initial_guess = (StarClass == OPALHydrostaticMainSequenceStar)
   if initial_guess:
     star = ModKramersHydrostaticMainSequenceStar(M, ngrid, rgrid)
     star.set_composition(get_X(star.r), Z, XCNO)
     star.enable_radiative_pressure(False)
     if BC == "pressure":
-      star.set_surface_pressure(Ps*cst.atm) 
+      star.set_surface_pressure(Ps*cst.atm)
     elif BC == "density":
-      star.set_surface_mass_density(rhos) 
+      star.set_surface_mass_density(rhos)
     else:
       raise ValueError("Error, BC must be 'pressure' or 'density'.")
-    star.solve(nmax = nmax, epsilon = epsilon, alpha = alpha)
+    star.solve(nmax = nmax, epsilon = epsilon, alphamin = alphamin)
     guess = star.get_solution()
-    
+
   # Solve the chosen model.
   ExtStarClass = AddPlotExtensions(StarClass)
   star = ExtStarClass(M, ngrid, rgrid)
   star.set_composition(get_X(star.r), Z, XCNO)
   star.enable_radiative_pressure(prad)
   if BC == "pressure":
-    star.set_surface_pressure(Ps*cst.atm) 
+    star.set_surface_pressure(Ps*cst.atm)
   elif BC == "density":
-    star.set_surface_mass_density(rhos) 
+    star.set_surface_mass_density(rhos)
   else:
-    raise ValueError("Error, BC must be 'pressure' or 'density'.")    
-  star.solve(nmax = nmax, epsilon = epsilon, alpha = alpha, guess = guess)
-  
+    raise ValueError("Error, BC must be 'pressure' or 'density'.")
+  star.solve(nmax = nmax, epsilon = epsilon, alphamin = alphamin, guess = guess)
+
   # Plot data.
   star.print_star_parameters()
   star.plot_star_parameters()
   star.draw_star()
-  
+
   if save_plots:
     plt.figure(1)
     plt.savefig(plots_dir+"/rho.pdf")
     plt.figure(2)
-    plt.savefig(plots_dir+"/P.pdf")    
+    plt.savefig(plots_dir+"/P.pdf")
     plt.figure(3)
-    plt.savefig(plots_dir+"/T.pdf")    
+    plt.savefig(plots_dir+"/T.pdf")
     plt.figure(4)
-    plt.savefig(plots_dir+"/epsilon.pdf")    
+    plt.savefig(plots_dir+"/epsilon.pdf")
     plt.figure(5)
-    plt.savefig(plots_dir+"/lpm.pdf")    
+    plt.savefig(plots_dir+"/lpm.pdf")
     plt.figure(8)
     plt.savefig(plots_dir+"/etoile.pdf")
-  
-  plt.ioff()  
+
+  plt.ioff()
   plt.show()

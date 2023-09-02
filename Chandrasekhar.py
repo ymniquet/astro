@@ -19,7 +19,7 @@ import constants as cst
 def Pdeg_nonrel(n):
   """Return pressure (Pa) as a function of carrier density n (m^-3) for a degenerate, non-relativistic electron gas."""
   return (cst.hbar**2/(5.*cst.me))*(3.*pi**2)**(2./3.)*n**(5./3.)
-  
+
 def dPdegdn_nonrel(n):
   """Return the derivative of the pressure (Pa.m^3) with respect to the carrier density n (m^-3) for a degenerate, non-relativistic electron gas."""
   return (cst.hbar**2/(3.*cst.me))*(3.*pi**2*n)**(2./3.)
@@ -34,7 +34,7 @@ def _Pdeg(n):
   x = cst.hbar*kf/(cst.me*cst.c)
   I = quad(lambda t: t**4/sqrt(1.+t**2), 0., x)
   return cst.me**4*cst.c**5*I[0]/(3.*pi**2*cst.hbar**3)
-  
+
 Pdeg = vectorize(lambda n: _Pdeg(n), otypes = [float])
 
 def dPdegdn(n):
@@ -51,7 +51,7 @@ def dPdegdn(n):
 def Pdeg_ultra(n):
   """Return pressure (Pa) as a function of carrier density n (m^-3) for a degenerate, ultra-relativistic electron gas."""
   return (cst.hbar*cst.c/4.)*(3.*pi**2)**(1./3.)*n**(4./3.)
-  
+
 def dPdegdn_ultra(n):
   """Return the derivative of the pressure (Pa.m^3) with respect to the carrier density n (m^-3) for a degenerate, ultra-relativistic electron gas."""
   return (cst.hbar*cst.c/3.)*(3.*pi**2*n)**(1./3.)
@@ -60,83 +60,95 @@ def dPdegdn_ultra(n):
 # Lame-Enden solver. #
 ######################
 
-def radius_degenerate_star(M, dPdn, mue = 2., ngrid = 2**12, epsilon = 1.e-8, nmax = 1000000, alpha = .5, guess = None):
-  """Compute radius R of a degenerate star with mass M (kg) by solving the hydrostatic equilibrium equations
-     (self-consistent method derived from etoile.py). dPdn(n) is a function that returns the derivative
-     of the pressure (Pa.m^3) with respect to the electron density n (m^-3). mu is the molecular mass per 
-     electron, ngrid the number of points on the radial grid, epsilon the target accuracy of the solution, 
-     nmax the maximal number of self-consistent iterations, and alpha the mixing parameter (decrease alpha 
-     if not converging). If not None, guess = (R, rho) is an initial guess for the radius R (m) and the 
-     mass density rho (kg/m^3) on the grid. Returns the radius R (m), the mass density rho on the grid (kg/m^3)
-     and an error code ierr (= 0 if solution found, 1 if convergence is not achieved)."""
-  
+def radius_degenerate_star(M, dPdn, mue = 2., ngrid = 2**12, epsilon = 1.e-8, nmax = 1000000, alphamin = 0.2, alphamax = 1., guess = None):
+  """Compute the radius R of a degenerate star with mass M (kg) by solving the hydrostatic equilibrium equations
+     (self-consistent method derived from star.py - not the most efficient but practical). dPdn(n) is a function
+     that returns the derivative of the pressure (Pa.m^3) with respect to the electron density n (m^-3). mu is
+     the molecular mass per electron, ngrid the number of points on the radial grid, epsilon the target accuracy
+     of the solution, nmax the maximal number of self-consistent iterations, and alphamin/alphamax the minimal
+     and maximal mixing parameters (decrease alphamin and alphamax-alphamin if not converging). If not None,
+     guess = (R, rho) is an initial guess for the radius R (m) and the mass density rho (kg/m^3) on the grid.
+     Returns the radius R (m), the mass density rho on the grid (kg/m^3) and an error code ierr (= 0 if
+     solution found, 1 if convergence is not achieved)."""
+
   # Set-up radial grid.
   r = linspace(0., 1., ngrid)
   dr = r[1:]-r[:-1] # Grid steps.
   rc = (r[:-1]+r[1:])/2. # Mid-points.
-  dVl = empty(ngrid) # Volume of the half-shell on the left of each grid point.    
-  dVl[1:] = 4.*pi*(r[1:]**3-rc**3)/3. 
+  dVl = empty(ngrid) # Volume of the half-shell on the left of each grid point.
+  dVl[1:] = 4.*pi*(r[1:]**3-rc**3)/3.
   dVl[ 0] = 0.
-  dVr = empty(ngrid) # Volume of the half-shell on the right of each grid point.    
-  dVr[:-1] = 4.*pi*(rc**3-r[:-1]**3)/3. 
-  dVr[ -1] = 0.   
+  dVr = empty(ngrid) # Volume of the half-shell on the right of each grid point.
+  dVr[:-1] = 4.*pi*(rc**3-r[:-1]**3)/3.
+  dVr[ -1] = 0.
   dVc = dVl+dVr # Volume of the shell centered on each grid point.
   # Solve the hydrostatic equilibrium equations.
-  m = mue*cst.mp # Mass per electron.  
-  n = 0
+  m = mue*cst.mp # Mass per electron.
+  n = 0 # Number of self-consistent iterations.
   ierr = 0 # Return code.
-  print( "+-------+"+2*(14*"-"+"+"))
-  print(f"| Iter. | {'Error':>12} | {'R (km)':>12} |")
-  print( "+-------+"+2*(14*"-"+"+")) 
+  alphamax = max(alphamin, alphamax)
+  alpha = alphamax # Mixing parameter.
+  print( "+-------+"+3*(14*"-"+"+"))
+  print(f"| Iter. | {'Error':>12} | {'Alpha':>12} | {'R (km)':>12} |")
+  print( "+-------+"+3*(14*"-"+"+"))
   # Initial guess.
   if guess is not None:
     R, rho = guess
   else:
     R = 1.e6
-    rho = full(ngrid, 3.*M/(4.*pi*R**3))  
-  print(f"| {n:5d} | {NaN:12.5e} | {R/1.e3:12.5e} |")    
-  while True: 
+    rho = full(ngrid, 3.*M/(4.*pi*R**3))
+  print(f"| {n:5d} | {NaN:12.5e} | {alpha:12.5e} | {R/1.e3:12.5e} |")
+  while True:
     # New self-consistent iteration.
-    n += 1 
+    n += 1
     if n > nmax:
-      print( "+-------+"+2*(14*"-"+"+"))
+      print( "+-------+"+3*(14*"-"+"+"))
       print(f"Error, could not converge within {nmax} iterations.")
       ierr = 1
-      break         
+      break
     # Save present density.
-    rhop = copy(rho)    
+    rhop = copy(rho)
     # Compute gravitational field.
     g = cumsum(rho*dVc)-rho*dVr
     g[1:] /= r[1:]**2
-    g *= cst.G*R     
+    g *= cst.G*R
     # Solve density equation.
     dPdr = -rho*g # Compute dP/dr.
     drhodr = m*dPdr/dPdn(rho/m) # Compute drho/dr.
-    drhodr = (drhodr[:-1]+drhodr[1:])/2. # Average drho/dr at mid-points.      
+    drhodr = (drhodr[:-1]+drhodr[1:])/2. # Average drho/dr at mid-points.
     drho = -cumsum(drhodr[::-1]*dr[::-1])*R # Integrate drho/dr.
     rho[-1] = 1.e-12 # Do not set to 0 to avoid divergences.
     rho[:-1] = rho[-1]+drho[::-1]
     # Compute error.
     error = sqrt(sum(((rho-rhop)/rhop[0])**2))
-    print(f"| {n:5d} | {error:12.5e} | {R/1.e3:12.5e} |")            
+    # Compute mixing factor.
+    if n > 1:
+      if error > errorp:                   # The error increases -> the input and output densities spread farther and farther apart.
+        alpha = max(alphamin, alphap/1.33) # The calculation *may* thus be diverging -> reduce alpha for safety.
+      else:
+        alpha = min(alphamax, alphap*1.25) # Otherwise, increase alpha to speed up convergence.
+    print(f"| {n:5d} | {error:12.5e} | {alpha:12.5e} | {R/1.e3:12.5e} |")
     # Check convergence.
     if error < epsilon:
-      print( "+-------+"+2*(14*"-"+"+"))
-      print(f"Converged within {n} iterations.")
+      print( "+-------+"+3*(14*"-"+"+"))
+      print(f"Converged in {n} iterations.")
       break
     # Mix previous & present densities.
     rho = alpha*rho+(1.-alpha)*rhop
+    # Save error and mixing factor.
+    errorp = error
+    alphap = alpha
     # Compute total mass.
     Mt = sum(rho*dVc)*R**3
     # Update star radius.
-    R = R*(M/Mt)**(1./3.)        
+    R = R*(M/Mt)**(1./3.)
   return R, rho, ierr
 
-#########  
+#########
 # Main. #
 #########
 
-# Plot pressure as a function of density in a degenerate gas.
+### Plot pressure as a function of density in a degenerate electron gas.
 
 figure(1)
 ax = axes()
@@ -156,7 +168,7 @@ savefig("degenere_relativiste.pdf")
 
 #show()
 
-# Plot radius as a function of mass in a degenerate star.
+### Plot radius as a function of mass in a degenerate star.
 
 Msun = 1.99e30 # Solar mass.
 
@@ -172,8 +184,8 @@ Rs = []
 guess = None
 for M in Ms:
   R, rho, ierr = radius_degenerate_star(M*Msun, dPdegdn_nonrel, guess = guess)
-  if ierr != 0: 
-    raise RuntimeError("Error, failed to solve the radius.")
+  if ierr != 0:
+    raise RuntimeError("Error, failed to solve the hydrostatic equations.")
   Rs.append(R)
   guess = (R, rho)
 Rs = array(Rs)
@@ -181,7 +193,7 @@ Rs = array(Rs)
 plot(Ms, Rs/1.e3, "b:", label = "Non relativiste")
 
 # Relativistic case.
- 
+
 Mmin = 0.25 # Minimum mass (in units of Msun).
 Mmax = 1.434 # Maximum mass (in units of Msun).
 Ms = linspace(Mmin, Mmax, 256)
@@ -189,8 +201,8 @@ Rs = []
 guess = None
 for M in Ms:
   R, rho, ierr = radius_degenerate_star(M*Msun, dPdegdn, guess = guess)
-  if ierr != 0: 
-    raise RuntimeError("Error, failed to solve the radius.")
+  if ierr != 0:
+    raise RuntimeError("Error, failed to solve the hydrostatic equations.")
   Rs.append(R)
   guess = (R, rho)
 Rs = array(Rs)
@@ -198,9 +210,9 @@ Rs = array(Rs)
 plot(Ms, Rs/1.e3, "b-", label = "Relativiste")
 
 # Finalize plot.
- 
+
 xlim(0.25, 1.75)
-ylim(0., 14000.) 
+ylim(0., 14000.)
 xlabel("$M$ ($M_\odot$)")
 ylabel("$R$ (km)")
 legend(loc = "lower left")
@@ -209,7 +221,14 @@ axvline(1.44, linestyle = "-.", color = "gray")
 
 savefig("Chandrasekhar.pdf")
 
-# Plot density in the star.
+### Plot density in a degenerate star.
+
+M = 1.434
+if M != Ms[-1]:
+  guess = None
+  R, rho, ierr = radius_degenerate_star(M*Msun, dPdegdn, guess = guess)
+  if ierr != 0:
+    raise RuntimeError("Error, failed to solve the hydrostatic equations.")
 
 figure(3)
 ax = axes()
@@ -217,7 +236,7 @@ plot(linspace(0., 1., len(rho)), rho/1.e3, "b-")
 xlim(0., 1.)
 xlabel("$r/R$")
 ylabel("$\\rho$ (g/cm$^3$)")
-title(f"$M={Ms[-1]:.3f}$ $M_\odot$")
+title(f"$M={M:.3f}$ $M_\odot$")
 #ax.text(0.975, 0.95, "(c)", fontsize = 20, ha = "right", va = "top", transform = ax.transAxes)
 
 show()

@@ -38,11 +38,11 @@ def epsilon_PP(rho, T):
 def epsilon_CNO(rho, T):
   """Returns the power per unit of mass epsilon (W/kg) for the CNO cycle.
      rho is the mass density (kg/m^3) and T the temperature (K).
-     Full model."""      
+     Full model."""
   one3 = 1./3.
-  two3 = 2./3.      
-  T6 = T/1.e6  
-  rho3 = rho/1.e3    
+  two3 = 2./3.
+  T6 = T/1.e6
+  rho3 = rho/1.e3
   CCNO = 1.+0.0027*T6**one3-0.00778*T6**two3-0.000149*T6
   return 1.e-4*8.67e27*rho3*X*XCNO*CCNO*T6**(-two3)*np.exp(-152.28*T6**(-one3))
 
@@ -57,8 +57,8 @@ def epsilon_PP_poly(rho, T):
 def epsilon_CNO_poly(rho, T):
   """Returns the power per unit of mass epsilon (W/kg) for the CNO cycle.
      rho is the mass density (kg/m^3) and T the temperature (K).
-     Polynomial approximation."""      
-  return 6.54e-151*X*XCNO*rho*T**20 
+     Polynomial approximation."""
+  return 6.54e-151*X*XCNO*rho*T**20
 
 ###################
 
@@ -82,4 +82,3 @@ axvline(15., linestyle = "-.", color = "gray")
 savefig("PPCNO.pdf")
 
 show()
-  

@@ -44,10 +44,10 @@ def chemical_potential(n, T):
     dnrmu = pn*dfdk(0.5, rmu) # Newton-Raphson correction.
     rmu = rmu-deltan/dnrmu
   return rmu*kT
-  
+
 def plot_DoS(n, T, c = "b", label = ""):
   """Plot density of states and Fermi-Dirac distribution at given temperature T (K) and density n (m^{-3}), with color c and label label."""
-  kT = kb*T    
+  kT = kb*T
   mu = chemical_potential(n, T)
   Es = linspace(min(0, mu*kT), mu+30*kT, 1024)
   rhos = (nd/(2*pi)**2)*(2*m/hbar**2)**1.5*sqrt(maximum(0, Es))
@@ -57,7 +57,7 @@ def plot_DoS(n, T, c = "b", label = ""):
   fill_between(Es/ec, rhofs*ec/1e6, color = c, alpha = .5)
   axvline(mu/ec, linestyle = "-.", color = c)
   print(f"DoS integral = {sum(rhofs)*(Es[1]-Es[0]):.2e}/m^3 (shall be {n:.2e}/m^3).")
-    
+
 ### Plots.
 
 n = 6.5e31 # Density of electrons in the core of the Sun (m^-3).
@@ -91,5 +91,3 @@ text(0.025, 0.965, "(b)", fontsize = 20, ha = "left", va = "top", transform = gc
 savefig("degenere.pdf")
 
 show()
-
-
